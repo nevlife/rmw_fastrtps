@@ -95,6 +95,7 @@ struct CustomSubscriberInfo : public CustomEventInfo
   virtual ~CustomSubscriberInfo() = default;
 
   eprosima::fastdds::dds::DataReader * data_reader_ {nullptr};
+  eprosima::fastdds::dds::ReadCondition * read_condition_ {nullptr};
   RMWSubscriptionEvent * subscription_event_{nullptr};
   CustomDataReaderListener * data_reader_listener_{nullptr};
   eprosima::fastdds::dds::TypeSupport type_support_;

@@ -317,16 +317,20 @@ create_subscription(
     return nullptr;
   }
 
-  // Initialize DataReader's StatusCondition to be notified when new data is available
-  info->data_reader_->get_statuscondition().set_enabled_statuses(
-    eprosima::fastdds::dds::StatusMask::data_available());
-
   // lambda to delete datareader
   auto cleanup_datareader = rcpputils::make_scope_exit(
     [subscriber, info]()
     {
+      info->data_reader_->delete_contained_entities();
       subscriber->delete_datareader(info->data_reader_);
     });
+
+  info->read_condition_ =
+    rmw_fastrtps_shared_cpp::create_subscription_read_condition(info->data_reader_);
+  if (!info->read_condition_) {
+    RMW_SET_ERROR_MSG("create_readcondition() could not create a read condition");
+    return nullptr;
+  }
 
   /////
   // Create RMW GID

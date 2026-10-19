@@ -158,8 +158,7 @@ __rmw_wait(
       for (size_t i = 0; i < subscriptions->subscriber_count; ++i) {
         void * data = subscriptions->subscribers[i];
         auto custom_subscriber_info = static_cast<CustomSubscriberInfo *>(data);
-        attached_conditions.push_back(
-          &custom_subscriber_info->data_reader_->get_statuscondition());
+        attached_conditions.push_back(custom_subscriber_info->read_condition_);
       }
     }
 

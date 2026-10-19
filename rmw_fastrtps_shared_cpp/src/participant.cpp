@@ -412,6 +412,7 @@ rmw_fastrtps_shared_cpp::destroy_participant(CustomParticipantInfo * participant
     participant_info->subscriber_->get_datareaders(readers);
     for (auto reader : readers) {
       topics_to_remove.push_back(reader->get_topicdescription());
+      reader->delete_contained_entities();
       participant_info->subscriber_->delete_datareader(reader);
     }
     ret = participant_info->participant_->delete_subscriber(participant_info->subscriber_);

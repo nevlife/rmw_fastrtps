@@ -18,6 +18,8 @@
 
 #include "rmw_fastrtps_shared_cpp/utils.hpp"
 
+#include "fastdds/dds/subscriber/DataReader.hpp"
+#include "fastdds/dds/subscriber/ReadCondition.hpp"
 #include "fastdds/dds/topic/Topic.hpp"
 #include "fastdds/dds/topic/TopicDescription.hpp"
 #include "fastdds/dds/topic/TypeSupport.hpp"
@@ -184,5 +186,16 @@ create_datareader(
   return true;
 }
 
+
+eprosima::fastdds::dds::ReadCondition *
+create_subscription_read_condition(eprosima::fastdds::dds::DataReader * data_reader)
+{
+  data_reader->get_statuscondition().set_enabled_statuses(
+    eprosima::fastdds::dds::StatusMask::none());
+  return data_reader->create_readcondition(
+    eprosima::fastdds::dds::ANY_SAMPLE_STATE,
+    eprosima::fastdds::dds::ANY_VIEW_STATE,
+    eprosima::fastdds::dds::ANY_INSTANCE_STATE);
+}
 
 }  // namespace rmw_fastrtps_shared_cpp

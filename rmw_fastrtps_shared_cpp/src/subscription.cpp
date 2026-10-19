@@ -47,6 +47,7 @@ destroy_subscription(
     auto info = static_cast<CustomSubscriberInfo *>(subscription->data);
 
     // Delete DataReader
+    info->data_reader_->delete_contained_entities();
     ReturnCode_t ret = participant_info->subscriber_->delete_datareader(info->data_reader_);
     if (ReturnCode_t::RETCODE_OK != ret) {
       RMW_SET_ERROR_MSG("Failed to delete datareader");
