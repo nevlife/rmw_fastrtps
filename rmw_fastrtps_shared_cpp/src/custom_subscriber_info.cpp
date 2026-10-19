@@ -122,6 +122,21 @@ eprosima::fastdds::dds::StatusCondition & RMWSubscriptionEvent::get_statuscondit
   return subscriber_info_->data_reader_->get_statuscondition();
 }
 
+void RMWSubscriptionEvent::enable_event(
+  rmw_event_type_t event_type,
+  eprosima::fastdds::dds::StatusMask status)
+{
+  rcpputils::unique_lock<std::mutex> lock_mutex(on_new_event_m_);
+  enabled_events_ |= status;
+  eprosima::fastdds::dds::StatusMask listened = subscriber_info_->data_reader_->get_status_mask();
+  listened |= status;
+  subscriber_info_->data_reader_->set_listener(subscriber_info_->data_reader_listener_, listened);
+  // A change from before the listener was set is only in the reader's status.
+  if (subscriber_info_->data_reader_->get_status_changes().is_active(status)) {
+    event_guard[event_type].set_trigger_value(true);
+  }
+}
+
 bool RMWSubscriptionEvent::take_event(
   rmw_event_type_t event_type,
   void * event_info)
@@ -245,10 +260,15 @@ void RMWSubscriptionEvent::set_on_new_event_callback(
     subscriber_info_->data_reader_->get_status_mask();
 
   if (callback) {
+    // Changes the listener already took from the reader (events enabled for waits) are in the
+    // stored statuses, not in the reader's.
     switch (event_type) {
       case RMW_EVENT_LIVELINESS_CHANGED:
         {
-          subscriber_info_->data_reader_->get_liveliness_changed_status(liveliness_changed_status_);
+          if (!liveliness_changed_) {
+            subscriber_info_->data_reader_->get_liveliness_changed_status(
+              liveliness_changed_status_);
+          }
 
           if ((liveliness_changed_status_.alive_count_change > 0) ||
             (liveliness_changed_status_.not_alive_count_change > 0))
@@ -264,8 +284,10 @@ void RMWSubscriptionEvent::set_on_new_event_callback(
         break;
       case RMW_EVENT_REQUESTED_DEADLINE_MISSED:
         {
-          subscriber_info_->data_reader_->get_requested_deadline_missed_status(
-            requested_deadline_missed_status_);
+          if (!deadline_changed_) {
+            subscriber_info_->data_reader_->get_requested_deadline_missed_status(
+              requested_deadline_missed_status_);
+          }
 
           if (requested_deadline_missed_status_.total_count_change > 0) {
             callback(user_data, requested_deadline_missed_status_.total_count_change);
@@ -275,7 +297,9 @@ void RMWSubscriptionEvent::set_on_new_event_callback(
         break;
       case RMW_EVENT_MESSAGE_LOST:
         {
-          subscriber_info_->data_reader_->get_sample_lost_status(sample_lost_status_);
+          if (!sample_lost_changed_) {
+            subscriber_info_->data_reader_->get_sample_lost_status(sample_lost_status_);
+          }
 
           if (sample_lost_status_.total_count_change > 0) {
             callback(user_data, sample_lost_status_.total_count_change);
@@ -285,8 +309,10 @@ void RMWSubscriptionEvent::set_on_new_event_callback(
         break;
       case RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE:
         {
-          subscriber_info_->data_reader_->get_requested_incompatible_qos_status(
-            incompatible_qos_status_);
+          if (!incompatible_qos_changed_) {
+            subscriber_info_->data_reader_->get_requested_incompatible_qos_status(
+              incompatible_qos_status_);
+          }
 
           if (incompatible_qos_status_.total_count_change > 0) {
             callback(user_data, incompatible_qos_status_.total_count_change);
@@ -325,9 +351,10 @@ void RMWSubscriptionEvent::set_on_new_event_callback(
     on_new_event_cb_[event_type] = nullptr;
 
     // subscription_matched status should be kept enabled, since we need to
-    // keep tracking matched publications
-    if (RMW_EVENT_SUBSCRIPTION_MATCHED != event_type) {
-      status_mask &= ~rmw_fastrtps_shared_cpp::internal::rmw_event_to_dds_statusmask(event_type);
+    // keep tracking matched publications; enabled events report to waits through it
+    auto event_mask = rmw_fastrtps_shared_cpp::internal::rmw_event_to_dds_statusmask(event_type);
+    if (RMW_EVENT_SUBSCRIPTION_MATCHED != event_type && !enabled_events_.is_active(event_mask)) {
+      status_mask &= ~event_mask;
     }
   }
 

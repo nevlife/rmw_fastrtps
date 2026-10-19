@@ -95,7 +95,6 @@ struct CustomSubscriberInfo : public CustomEventInfo
   virtual ~CustomSubscriberInfo() = default;
 
   eprosima::fastdds::dds::DataReader * data_reader_ {nullptr};
-  eprosima::fastdds::dds::ReadCondition * read_condition_ {nullptr};
   RMWSubscriptionEvent * subscription_event_{nullptr};
   CustomDataReaderListener * data_reader_listener_{nullptr};
   eprosima::fastdds::dds::TypeSupport type_support_;
@@ -136,6 +135,19 @@ public:
 
   RMW_FASTRTPS_SHARED_CPP_PUBLIC
   eprosima::fastdds::dds::StatusCondition & get_statuscondition() const override;
+
+  /// Report the event through the listener and its event guard. The reader's StatusCondition
+  /// also carries DATA_AVAILABLE, so a wait on the events alone would return at once whenever a
+  /// message is untaken.
+  RMW_FASTRTPS_SHARED_CPP_PUBLIC
+  void enable_event(
+    rmw_event_type_t event_type,
+    eprosima::fastdds::dds::StatusMask status) override;
+
+  bool events_on_statuscondition() const override
+  {
+    return false;
+  }
 
   RMW_FASTRTPS_SHARED_CPP_PUBLIC
   bool take_event(
@@ -222,6 +234,9 @@ public:
 
 private:
   CustomSubscriberInfo * subscriber_info_ = nullptr;
+
+  eprosima::fastdds::dds::StatusMask enabled_events_
+  RCPPUTILS_TSA_GUARDED_BY(on_new_event_m_) = eprosima::fastdds::dds::StatusMask::none();
 
   bool deadline_changed_
   RCPPUTILS_TSA_GUARDED_BY(on_new_event_m_);

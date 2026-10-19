@@ -66,9 +66,10 @@ static bool has_triggered_condition(
   if (events) {
     for (size_t i = 0; i < events->event_count; ++i) {
       auto event = static_cast<rmw_event_t *>(events->events[i]);
-      auto custom_event_info = static_cast<CustomEventInfo *>(event->data);
-      if (custom_event_info->get_listener()->get_statuscondition().get_trigger_value() ||
-        custom_event_info->get_listener()->get_event_guard(event->event_type).get_trigger_value())
+      auto listener = static_cast<CustomEventInfo *>(event->data)->get_listener();
+      if ((listener->events_on_statuscondition() &&
+        listener->get_statuscondition().get_trigger_value()) ||
+        listener->get_event_guard(event->event_type).get_trigger_value())
       {
         return true;
       }
@@ -158,7 +159,8 @@ __rmw_wait(
       for (size_t i = 0; i < subscriptions->subscriber_count; ++i) {
         void * data = subscriptions->subscribers[i];
         auto custom_subscriber_info = static_cast<CustomSubscriberInfo *>(data);
-        attached_conditions.push_back(custom_subscriber_info->read_condition_);
+        attached_conditions.push_back(
+          &custom_subscriber_info->data_reader_->get_statuscondition());
       }
     }
 
@@ -183,11 +185,11 @@ __rmw_wait(
     if (events) {
       for (size_t i = 0; i < events->event_count; ++i) {
         auto event = static_cast<rmw_event_t *>(events->events[i]);
-        auto custom_event_info = static_cast<CustomEventInfo *>(event->data);
-        attached_conditions.push_back(
-          &custom_event_info->get_listener()->get_statuscondition());
-        attached_conditions.push_back(
-          &custom_event_info->get_listener()->get_event_guard(event->event_type));
+        auto listener = static_cast<CustomEventInfo *>(event->data)->get_listener();
+        if (listener->events_on_statuscondition()) {
+          attached_conditions.push_back(&listener->get_statuscondition());
+        }
+        attached_conditions.push_back(&listener->get_event_guard(event->event_type));
       }
     }
 

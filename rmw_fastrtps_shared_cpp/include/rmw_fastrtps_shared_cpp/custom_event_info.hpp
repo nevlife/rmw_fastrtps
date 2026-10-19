@@ -62,6 +62,23 @@ public:
     return event_guard[event_type];
   }
 
+  /// Start reporting \p event_type to waits: through the StatusCondition, unless overridden.
+  virtual void enable_event(
+    rmw_event_type_t event_type,
+    eprosima::fastdds::dds::StatusMask status)
+  {
+    (void)event_type;
+    eprosima::fastdds::dds::StatusMask enabled = get_statuscondition().get_enabled_statuses();
+    enabled |= status;
+    get_statuscondition().set_enabled_statuses(enabled);
+  }
+
+  /// Whether waits on this listener's events attach its StatusCondition, or only event guards.
+  virtual bool events_on_statuscondition() const
+  {
+    return true;
+  }
+
   /// Callback to update the internal inconsistent topic data
   /**
    * \param total_count The total number of inconsistent topic events for all time.

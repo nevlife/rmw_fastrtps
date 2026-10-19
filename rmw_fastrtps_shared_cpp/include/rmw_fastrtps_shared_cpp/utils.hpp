@@ -126,18 +126,6 @@ create_datareader(
   CustomDataReaderListener * listener,
   eprosima::fastdds::dds::DataReader ** data_reader);
 
-/// Create the condition rmw_wait uses for a subscription's untaken samples.
-/**
-* The reader's StatusCondition is left to QoS events: with DATA_AVAILABLE on it, a wait on the
-* events alone returns at once, with nothing ready, while a sample is untaken.
-* Delete the reader with delete_contained_entities() first.
-*
-* eturn the read condition, or nullptr when it could not be created
-*/
-RMW_FASTRTPS_SHARED_CPP_PUBLIC
-eprosima::fastdds::dds::ReadCondition *
-create_subscription_read_condition(eprosima::fastdds::dds::DataReader * data_reader);
-
 }  // namespace rmw_fastrtps_shared_cpp
 
 #endif  // RMW_FASTRTPS_SHARED_CPP__UTILS_HPP_

@@ -142,10 +142,8 @@ __rmw_init_event(
   rmw_event->data = data;
   rmw_event->event_type = event_type;
   CustomEventInfo * event = static_cast<CustomEventInfo *>(rmw_event->data);
-  eprosima::fastdds::dds::StatusMask status_mask =
-    event->get_listener()->get_statuscondition().get_enabled_statuses();
-  status_mask |= rmw_fastrtps_shared_cpp::internal::rmw_event_to_dds_statusmask(event_type);
-  event->get_listener()->get_statuscondition().set_enabled_statuses(status_mask);
+  event->get_listener()->enable_event(
+    event_type, rmw_fastrtps_shared_cpp::internal::rmw_event_to_dds_statusmask(event_type));
 
   return RMW_RET_OK;
 }
