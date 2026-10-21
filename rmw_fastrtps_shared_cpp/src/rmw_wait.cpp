@@ -295,13 +295,17 @@ __rmw_wait(
       bool active = false;
 
       if (wait_result) {
-        eprosima::fastdds::dds::Entity * entity = status_condition.get_entity();
-        eprosima::fastdds::dds::StatusMask changed_statuses = entity->get_status_changes();
-        if (changed_statuses.is_active(
-            rmw_fastrtps_shared_cpp::internal::rmw_event_to_dds_statusmask(
-              event->event_type)))
-        {
-          active = true;
+        // A listener reports through the guard; the reader may still flag a status the
+        // listener already took, which would report the event twice.
+        if (custom_event_info->get_listener()->events_on_statuscondition()) {
+          eprosima::fastdds::dds::Entity * entity = status_condition.get_entity();
+          eprosima::fastdds::dds::StatusMask changed_statuses = entity->get_status_changes();
+          if (changed_statuses.is_active(
+              rmw_fastrtps_shared_cpp::internal::rmw_event_to_dds_statusmask(
+                event->event_type)))
+          {
+            active = true;
+          }
         }
 
         if (guard_condition.get_trigger_value()) {
