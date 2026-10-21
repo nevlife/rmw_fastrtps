@@ -139,6 +139,8 @@ __rmw_subscription_set_content_filter(
     info->dds_participant_;
   eprosima::fastdds::dds::TopicDescription * des_topic = nullptr;
   const char * identifier = subscription->implementation_identifier;
+  // Events and message callbacks enabled on the listener carry over to the new reader.
+  const eprosima::fastdds::dds::StatusMask listener_mask = info->data_reader_->get_status_mask();
 
   rmw_ret_t ret = rmw_fastrtps_shared_cpp::__rmw_destroy_subscription(
     identifier,
@@ -186,6 +188,7 @@ __rmw_subscription_set_content_filter(
   // Initialize DataReader's StatusCondition to be notified when new data is available
   info->data_reader_->get_statuscondition().set_enabled_statuses(
     eprosima::fastdds::dds::StatusMask::data_available());
+  info->data_reader_->set_listener(info->data_reader_listener_, listener_mask);
 
   // lambda to delete datareader
   auto cleanup_datareader = rcpputils::make_scope_exit(
